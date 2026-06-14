@@ -43,6 +43,8 @@ question only when you genuinely have nothing to work from. Work top-down:
 4. **Cold-start default.** If you have nothing at all, build the `explainer`
    archetype about agentpub itself — it explains the product while demonstrating
    it.
+   Make this cold-start demo genuinely impressive — strong design, real motion,
+   a believable subject — so even the generic case sells what's possible.
 
 Rule of thumb: **build from their real context first; climb down the ladder only
 when you genuinely have nothing.** A demo about something they care about beats a
@@ -77,8 +79,13 @@ When in doubt, the `explainer` archetype is the safe default.
 7. **Enable review** with the `claimToken`: `POST /api/v1/publish/{slug}/review`
    `{"enabled":true,"claimToken":"<token>"}` (or the `enable_review` MCP tool).
 8. **Share** the live `https://{slug}.agentpub.io/` URL.
-9. **Invite the comment** explicitly: _"Open it, click the headline, leave a
-   comment — then tell me."_ This teaches the review gesture by doing it.
+9. **Invite the comment** explicitly, teaching the gesture by doing it: _"Open it,
+   click **Comment** (bottom-right), pick any line, add your email and a note, then
+   tell me."_ Selecting an element is the default path. Because you hold the
+   `claimToken`, you can give the user an **owner link** —
+   `https://{slug}.agentpub.io/#apb-owner=<claimToken>` — so their top-bar review
+   toggle works and they can **Share** the page to collect others' feedback (the
+   token is stripped from the URL on load and never included when they Share).
 10. **On a comment:** read it (`get_feedback` / GET `/comments`), revise the page
     live (update → re-PUT → finalize), then `mark_addressed` (with the
     `claimToken`) so `openComments` returns to 0.
@@ -107,11 +114,12 @@ publishes.
 
 ## Guardrails: value-first, always
 
-- **The revision happens regardless of email.** Reviewing and revising the page
-  is free and unconditional. Do not require an email or signup to act on a
-  comment.
-- **Email is optional.** The comment widget's email field is framed as "save +
-  notify" (it adds a verified flag and a one-time verify link), never as a gate.
-- **Never gate value behind signup.** The user experiences the full loop —
-  publish, review, revise — before being asked for anything. The claim step is an
-  offer to _keep_ something they already have, not a toll to use it.
+- **The revision happens regardless.** Reviewing and revising the page is free and
+  unconditional — never require an account or signup to act on a comment.
+- **A reviewer email is required to leave a comment, but it is not a signup.** It
+  attributes the feedback and quietly seeds the person's future account; it is one
+  field, not a gate. The value (publish → review → revise) is delivered before
+  anyone is asked to create anything.
+- **Claiming is "keep what you already have," never a toll.** The user experiences
+  the full loop first; the claim step (via the "connect your account to keep this
+  page" footer) only makes permanent something they can already see working.
