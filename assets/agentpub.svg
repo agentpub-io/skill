@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="104" viewBox="0 0 440 104" role="img" aria-label="agentpub">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f38020"/>
+      <stop offset="1" stop-color="#fbad41"/>
+    </linearGradient>
+  </defs>
+  <rect width="440" height="104" rx="14" fill="#0b0d12"/>
+  <text x="32" y="58" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="42" font-weight="700" fill="url(#g)">agentpub</text>
+  <text x="34" y="82" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" fill="#9a968c">publishing, built for agents</text>
+</svg>

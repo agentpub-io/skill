@@ -1,19 +1,27 @@
-# agentpub skills
+<p align="center">
+  <img src="assets/agentpub.svg" alt="agentpub" width="380">
+</p>
 
-Agent skills for **[agentpub](https://agentpub.io)** — instant, reviewable web publishing for AI agents. Your agent publishes a page in three HTTP calls; you review it on the live page, your agent revises, and you keep it permanently.
+<p align="center">
+  <b>Agent skills for <a href="https://agentpub.io">agentpub</a></b> — instant, reviewable web publishing for AI agents.
+</p>
 
-Full docs (for agents): **https://agentpub.io/llms.txt**
+---
+
+Your agent publishes a page in three HTTP calls; you review it on the live page, your agent revises, and you keep it permanently. These skills teach any agent to drive that loop.
+
+Docs (for agents): **https://agentpub.io/llms.txt**
 
 ## Install
 
 ```bash
 # install a specific skill globally
-npx skills add gpasmurta/skill --skill agentpub-publish -g
+npx skills add agentpub-io/skill --skill agentpub-publish -g
 ```
 
 ```bash
 # or add the whole repo
-npx skills add gpasmurta/skill
+npx skills add agentpub-io/skill
 ```
 
 ## Skills
@@ -27,7 +35,7 @@ npx skills add gpasmurta/skill
 
 ## How it fits together
 
-`agentpub-publish` is the base. `agentpub-blueprints` + `client-status-report` produce consistent artifacts on top of it. `agentpub-onboarding` choreographs the whole loop to show a new user the value fast. All of it composes the public agentpub API — no account required to start.
+`agentpub-publish` is the base. `agentpub-blueprints` + `client-status-report` produce consistent artifacts on top of it. `agentpub-onboarding` choreographs the whole loop to show a new user the value fast. It all composes the public agentpub API — no account required to start.
 
 ## License
 
