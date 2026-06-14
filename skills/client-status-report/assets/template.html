@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Client Status Report — Acme Co</title>
+    <style>
+      /* ============================================================
+         LOCKED DESIGN TOKENS — do not improvise. Use these exactly.
+         Edit here only when intentionally evolving the blueprint.
+         ============================================================ */
+      :root {
+        /* Palette — warm-neutral paper, near-black ink, one slate-teal accent */
+        --ink: #1a1d1f; /* primary text */
+        --ink-soft: #4a5054; /* secondary text */
+        --ink-faint: #8b9296; /* meta / captions */
+        --paper: #f7f5f1; /* page background */
+        --surface: #ffffff; /* card background */
+        --line: #e3ded6; /* hairlines / borders */
+        --accent: #0f6b6b; /* slate-teal — the one confident accent */
+        --accent-deep: #0a4f4f; /* accent hover/strong */
+        --accent-wash: #e7f0ef; /* accent tint for fills */
+        /* Severity (kept in the same restrained family) */
+        --sev-high: #a8341f;
+        --sev-high-wash: #f6e6e2;
+        --sev-med: #9a6b14;
+        --sev-med-wash: #f6efdf;
+        --sev-low: #0f6b6b;
+        --sev-low-wash: #e7f0ef;
+
+        /* Typography — system / web-safe stacks only (no external fonts) */
+        --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua",
+          Georgia, "Times New Roman", serif;
+        --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+          sans-serif;
+        --font-mono: "SF Mono", "SFMono-Regular", ui-monospace, "Cascadia Mono", Menlo,
+          Consolas, monospace;
+
+        /* Spacing scale */
+        --s-1: 4px;
+        --s-2: 8px;
+        --s-3: 12px;
+        --s-4: 16px;
+        --s-5: 24px;
+        --s-6: 32px;
+        --s-7: 48px;
+        --s-8: 64px;
+        --s-9: 96px;
+
+        /* Radius + elevation */
+        --radius: 10px;
+        --radius-sm: 6px;
+        --shadow: 0 1px 2px rgba(26, 29, 31, 0.04), 0 8px 28px rgba(26, 29, 31, 0.06);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--font-body);
+        font-size: 16px;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
+      .page {
+        max-width: 820px;
+        margin: 0 auto;
+        padding: var(--s-9) var(--s-6) var(--s-8);
+      }
+
+      /* ---------- Masthead ---------- */
+      .masthead {
+        border-bottom: 2px solid var(--ink);
+        padding-bottom: var(--s-5);
+        margin-bottom: var(--s-7);
+      }
+
+      .eyebrow {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin: 0 0 var(--s-4);
+        display: flex;
+        align-items: center;
+        gap: var(--s-3);
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 22px;
+        height: 2px;
+        background: var(--accent);
+        display: inline-block;
+      }
+
+      .title {
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: clamp(34px, 6vw, 50px);
+        line-height: 1.05;
+        letter-spacing: -0.01em;
+        margin: 0 0 var(--s-2);
+      }
+
+      .client {
+        font-family: var(--font-display);
+        font-size: clamp(20px, 3vw, 26px);
+        font-style: italic;
+        color: var(--ink-soft);
+        margin: 0;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--s-6);
+        margin-top: var(--s-6);
+      }
+
+      .meta dt {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+        margin: 0 0 var(--s-1);
+      }
+
+      .meta dd {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--ink);
+      }
+
+      /* ---------- Sections ---------- */
+      section {
+        margin-bottom: var(--s-8);
+      }
+
+      .section-head {
+        display: flex;
+        align-items: baseline;
+        gap: var(--s-4);
+        margin-bottom: var(--s-5);
+      }
+
+      .section-num {
+        font-family: var(--font-mono);
+        font-size: 13px;
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .section-title {
+        font-family: var(--font-display);
+        font-size: 24px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        margin: 0;
+        flex: 1;
+      }
+
+      .section-head::after {
+        content: "";
+        flex: 0 0 auto;
+        align-self: center;
+      }
+
+      /* ---------- Executive summary ---------- */
+      .summary {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--accent);
+        border-radius: var(--radius);
+        padding: var(--s-6);
+        box-shadow: var(--shadow);
+        font-size: 17px;
+        line-height: 1.65;
+        color: var(--ink-soft);
+      }
+
+      .summary strong {
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      /* ---------- Progress list ---------- */
+      .progress {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: var(--s-4);
+      }
+
+      .progress li {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: var(--s-5) var(--s-5) var(--s-5) var(--s-6);
+        position: relative;
+      }
+
+      .progress li::before {
+        content: "";
+        position: absolute;
+        left: var(--s-4);
+        top: var(--s-5);
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 0 4px var(--accent-wash);
+      }
+
+      .progress h3 {
+        margin: 0 0 var(--s-2);
+        font-size: 16px;
+        font-weight: 600;
+        padding-left: var(--s-3);
+      }
+
+      .progress p {
+        margin: 0;
+        padding-left: var(--s-3);
+        color: var(--ink-soft);
+        font-size: 15px;
+      }
+
+      /* ---------- Risks table ---------- */
+      .risk-grid {
+        display: grid;
+        gap: var(--s-4);
+      }
+
+      .risk {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: var(--s-5);
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: var(--s-3) var(--s-5);
+        align-items: start;
+      }
+
+      .risk h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        grid-column: 1;
+      }
+
+      .risk p {
+        margin: 0;
+        grid-column: 1;
+        color: var(--ink-soft);
+        font-size: 15px;
+      }
+
+      .risk-meta {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        text-align: right;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: var(--s-2);
+        min-width: 130px;
+      }
+
+      .owner {
+        font-size: 13px;
+        color: var(--ink-faint);
+      }
+
+      .owner span {
+        display: block;
+        font-size: 14px;
+        color: var(--ink);
+        font-weight: 500;
+      }
+
+      .severity {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        font-weight: 600;
+        padding: var(--s-1) var(--s-3);
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+
+      .severity.high {
+        color: var(--sev-high);
+        background: var(--sev-high-wash);
+      }
+
+      .severity.medium {
+        color: var(--sev-med);
+        background: var(--sev-med-wash);
+      }
+
+      .severity.low {
+        color: var(--sev-low);
+        background: var(--sev-low-wash);
+      }
+
+      /* ---------- Decisions ---------- */
+      .decisions {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        counter-reset: dec;
+        display: grid;
+        gap: var(--s-3);
+      }
+
+      .decisions li {
+        display: flex;
+        gap: var(--s-4);
+        align-items: flex-start;
+        background: var(--accent-wash);
+        border: 1px solid #cfe2e0;
+        border-radius: var(--radius);
+        padding: var(--s-5);
+      }
+
+      .decisions li::before {
+        counter-increment: dec;
+        content: counter(dec);
+        flex: 0 0 auto;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        font-family: var(--font-mono);
+        font-size: 14px;
+        font-weight: 600;
+        display: grid;
+        place-items: center;
+      }
+
+      .decisions strong {
+        display: block;
+        font-size: 16px;
+        margin-bottom: var(--s-1);
+        color: var(--ink);
+      }
+
+      .decisions span {
+        color: var(--ink-soft);
+        font-size: 15px;
+      }
+
+      /* ---------- Next actions ---------- */
+      .actions {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 0;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+        background: var(--surface);
+      }
+
+      .actions li {
+        display: grid;
+        grid-template-columns: 24px 1fr auto;
+        gap: var(--s-4);
+        align-items: center;
+        padding: var(--s-4) var(--s-5);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .actions li:last-child {
+        border-bottom: none;
+      }
+
+      .checkbox {
+        width: 18px;
+        height: 18px;
+        border: 2px solid var(--accent);
+        border-radius: var(--radius-sm);
+      }
+
+      .actions .who {
+        font-size: 13px;
+        color: var(--ink-faint);
+        font-family: var(--font-mono);
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+      }
+
+      .actions p {
+        margin: 0;
+        font-size: 15px;
+        color: var(--ink);
+      }
+
+      /* ---------- Footer ---------- */
+      .colophon {
+        margin-top: var(--s-9);
+        padding-top: var(--s-5);
+        border-top: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--s-4);
+        color: var(--ink-faint);
+        font-size: 13px;
+      }
+
+      .colophon .mark {
+        font-family: var(--font-display);
+        font-style: italic;
+        font-size: 16px;
+        color: var(--ink-soft);
+      }
+
+      /* ============================================================
+         PRINT — clean single-document PDF export
+         ============================================================ */
+      @media print {
+        :root {
+          --paper: #ffffff;
+        }
+        body {
+          font-size: 11pt;
+        }
+        .page {
+          max-width: none;
+          padding: 0;
+        }
+        section {
+          margin-bottom: 22pt;
+          break-inside: avoid;
+        }
+        .summary,
+        .progress li,
+        .risk,
+        .decisions li,
+        .actions {
+          box-shadow: none;
+          break-inside: avoid;
+        }
+        .colophon {
+          margin-top: 28pt;
+        }
+        @page {
+          margin: 18mm 16mm;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .page {
+          padding: var(--s-7) var(--s-5) var(--s-7);
+        }
+        .risk {
+          grid-template-columns: 1fr;
+        }
+        .risk-meta {
+          grid-column: 1;
+          grid-row: auto;
+          text-align: left;
+          align-items: flex-start;
+        }
+        .actions li {
+          grid-template-columns: 24px 1fr;
+        }
+        .actions .who {
+          grid-column: 2;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <!-- ===== Masthead (required: title, client, period, prepared-by/date) ===== -->
+      <header class="masthead">
+        <p class="eyebrow">Client Status Report</p>
+        <h1 class="title">Platform Modernization Engagement</h1>
+        <p class="client">Acme Co — Digital Operations</p>
+        <dl class="meta">
+          <div>
+            <dt>Reporting Period</dt>
+            <dd>May 1 – May 31, 2026</dd>
+          </div>
+          <div>
+            <dt>Prepared By</dt>
+            <dd>Jordan Vance, Engagement Lead</dd>
+          </div>
+          <div>
+            <dt>Date Issued</dt>
+            <dd>June 3, 2026</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>On Track</dd>
+          </div>
+        </dl>
+      </header>
+
+      <!-- ===== Executive summary (required) ===== -->
+      <section>
+        <div class="section-head">
+          <span class="section-num">01</span>
+          <h2 class="section-title">Executive Summary</h2>
+        </div>
+        <div class="summary">
+          The engagement remains <strong>on track</strong> against the Q2 roadmap. This period
+          we shipped the new authentication service and completed migration of the orders
+          dataset to the consolidated warehouse, unblocking downstream reporting. Two risks
+          warrant attention — a vendor API deprecation and constrained QA capacity — both with
+          owners and mitigation underway. We need one decision from Acme Co on the analytics
+          rollout sequence to keep June on schedule.
+        </div>
+      </section>
+
+      <!-- ===== Progress this period (required) ===== -->
+      <section>
+        <div class="section-head">
+          <span class="section-num">02</span>
+          <h2 class="section-title">Progress This Period</h2>
+        </div>
+        <ul class="progress">
+          <li>
+            <h3>Authentication service shipped to production</h3>
+            <p>
+              Rolled out SSO and MFA to all internal users with zero downtime. Sign-in
+              latency dropped 41% versus the legacy flow.
+            </p>
+          </li>
+          <li>
+            <h3>Orders dataset migrated to the warehouse</h3>
+            <p>
+              All 2.3M historical records reconciled and validated. Finance reporting now runs
+              against a single source of truth.
+            </p>
+          </li>
+          <li>
+            <h3>Design system v2 adopted across three teams</h3>
+            <p>
+              Component library consolidated; net removal of ~6,000 lines of bespoke CSS and
+              faster feature delivery for product teams.
+            </p>
+          </li>
+        </ul>
+      </section>
+
+      <!-- ===== Risks (required: each with owner + severity) ===== -->
+      <section>
+        <div class="section-head">
+          <span class="section-num">03</span>
+          <h2 class="section-title">Risks</h2>
+        </div>
+        <div class="risk-grid">
+          <article class="risk">
+            <h3>Vendor billing API deprecation</h3>
+            <p>
+              The current payments provider sunsets its v1 API on July 15. Migration to v2 is
+              scoped but competes with the analytics workstream for engineering time.
+            </p>
+            <div class="risk-meta">
+              <span class="severity high">High</span>
+              <span class="owner">Owner<span>Priya Nair</span></span>
+            </div>
+          </article>
+          <article class="risk">
+            <h3>Constrained QA capacity</h3>
+            <p>
+              One of two QA engineers is on leave through mid-June, slowing regression coverage
+              on the analytics release. Contract support is being lined up.
+            </p>
+            <div class="risk-meta">
+              <span class="severity medium">Medium</span>
+              <span class="owner">Owner<span>Marcus Lee</span></span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ===== Decisions needed (required) ===== -->
+      <section>
+        <div class="section-head">
+          <span class="section-num">04</span>
+          <h2 class="section-title">Decisions Needed</h2>
+        </div>
+        <ul class="decisions">
+          <li>
+            <div>
+              <strong>Approve the analytics rollout sequence</strong>
+              <span>
+                Confirm whether finance dashboards or the customer-facing portal ship first.
+                This determines June sprint priorities — decision needed by June 6.
+              </span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- ===== Next actions (required) ===== -->
+      <section>
+        <div class="section-head">
+          <span class="section-num">05</span>
+          <h2 class="section-title">Next Actions</h2>
+        </div>
+        <ul class="actions">
+          <li>
+            <span class="checkbox" aria-hidden="true"></span>
+            <p>Kick off payments v2 migration spike and size the effort</p>
+            <span class="who">Priya · Jun 9</span>
+          </li>
+          <li>
+            <span class="checkbox" aria-hidden="true"></span>
+            <p>Onboard contract QA engineer and hand off regression suite</p>
+            <span class="who">Marcus · Jun 10</span>
+          </li>
+          <li>
+            <span class="checkbox" aria-hidden="true"></span>
+            <p>Finalize analytics rollout plan once Acme confirms sequence</p>
+            <span class="who">Jordan · Jun 7</span>
+          </li>
+        </ul>
+      </section>
+
+      <footer class="colophon">
+        <span class="mark">Prepared for Acme Co</span>
+        <span>Confidential — for client review · Page 1 of 1</span>
+      </footer>
+    </main>
+  </body>
+</html>

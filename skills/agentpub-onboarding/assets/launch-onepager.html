@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Meridian — Launch One-Pager</title>
+    <style>
+      /* ============================================================
+         LOCKED DESIGN TOKENS — do not improvise. Use these exactly.
+         Shared agentpub slate-teal palette (matches client-status-report).
+         Edit here only when intentionally evolving the blueprint.
+         ============================================================ */
+      :root {
+        /* Palette — warm-neutral paper, near-black ink, one slate-teal accent */
+        --ink: #1a1d1f; /* primary text */
+        --ink-soft: #4a5054; /* secondary text */
+        --ink-faint: #8b9296; /* meta / captions */
+        --paper: #f7f5f1; /* page background */
+        --surface: #ffffff; /* card background */
+        --line: #e3ded6; /* hairlines / borders */
+        --accent: #0f6b6b; /* slate-teal — the one confident accent */
+        --accent-deep: #0a4f4f; /* accent hover/strong */
+        --accent-wash: #e7f0ef; /* accent tint for fills */
+
+        /* Typography — system / web-safe stacks only (no external fonts) */
+        --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua",
+          Georgia, "Times New Roman", serif;
+        --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+          sans-serif;
+        --font-mono: "SF Mono", "SFMono-Regular", ui-monospace, "Cascadia Mono", Menlo,
+          Consolas, monospace;
+
+        /* Spacing scale */
+        --s-1: 4px;
+        --s-2: 8px;
+        --s-3: 12px;
+        --s-4: 16px;
+        --s-5: 24px;
+        --s-6: 32px;
+        --s-7: 48px;
+        --s-8: 64px;
+        --s-9: 96px;
+
+        /* Radius + elevation */
+        --radius: 10px;
+        --radius-sm: 6px;
+        --shadow: 0 1px 2px rgba(26, 29, 31, 0.04), 0 8px 28px rgba(26, 29, 31, 0.06);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--font-body);
+        font-size: 16px;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
+      .page {
+        max-width: 820px;
+        margin: 0 auto;
+        padding: var(--s-9) var(--s-6) var(--s-8);
+      }
+
+      /* ---------- Onboarding furniture ---------- */
+      .apb-meta {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        color: var(--ink-faint);
+        margin: 0 0 var(--s-4);
+      }
+
+      .apb-meta strong {
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .apb-prompt {
+        background: var(--accent-wash);
+        border: 1px solid #cfe2e0;
+        border-radius: var(--radius);
+        padding: var(--s-3) var(--s-5);
+        margin: 0 0 var(--s-7);
+        font-size: 14px;
+        color: var(--accent-deep);
+      }
+
+      .apb-claim {
+        margin-top: var(--s-9);
+        padding-top: var(--s-5);
+        border-top: 1px solid var(--line);
+        color: var(--ink-faint);
+        font-size: 14px;
+        text-align: center;
+      }
+
+      .apb-claim a {
+        color: var(--accent);
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .apb-claim a:hover {
+        color: var(--accent-deep);
+        text-decoration: underline;
+      }
+
+      /* ---------- Hero ---------- */
+      .hero {
+        border-bottom: 2px solid var(--ink);
+        padding-bottom: var(--s-7);
+        margin-bottom: var(--s-8);
+      }
+
+      .eyebrow {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin: 0 0 var(--s-4);
+        display: flex;
+        align-items: center;
+        gap: var(--s-3);
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 22px;
+        height: 2px;
+        background: var(--accent);
+        display: inline-block;
+      }
+
+      .hero h1 {
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: clamp(38px, 7vw, 58px);
+        line-height: 1.04;
+        letter-spacing: -0.015em;
+        margin: 0 0 var(--s-4);
+      }
+
+      .promise {
+        font-size: clamp(18px, 2.6vw, 22px);
+        color: var(--ink-soft);
+        max-width: 60ch;
+        margin: 0 0 var(--s-6);
+      }
+
+      .hero-cta {
+        display: inline-block;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 600;
+        font-size: 16px;
+        padding: var(--s-3) var(--s-6);
+        border-radius: var(--radius);
+        text-decoration: none;
+      }
+
+      .hero-cta:hover {
+        background: var(--accent-deep);
+      }
+
+      /* ---------- Sections ---------- */
+      section {
+        margin-bottom: var(--s-8);
+      }
+
+      .section-head {
+        display: flex;
+        align-items: baseline;
+        gap: var(--s-4);
+        margin-bottom: var(--s-5);
+      }
+
+      .section-num {
+        font-family: var(--font-mono);
+        font-size: 13px;
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .section-title {
+        font-family: var(--font-display);
+        font-size: 24px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        margin: 0;
+        flex: 1;
+      }
+
+      /* ---------- Feature/benefit blocks ---------- */
+      .features {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: var(--s-4);
+      }
+
+      .features li {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        border-left: 3px solid var(--accent);
+        padding: var(--s-5) var(--s-6);
+        box-shadow: var(--shadow);
+      }
+
+      .features h3 {
+        margin: 0 0 var(--s-2);
+        font-size: 17px;
+        font-weight: 600;
+      }
+
+      .features p {
+        margin: 0;
+        color: var(--ink-soft);
+        font-size: 15px;
+      }
+
+      /* ---------- How it works ---------- */
+      .steps {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        counter-reset: step;
+        display: grid;
+        gap: var(--s-3);
+      }
+
+      .steps li {
+        display: flex;
+        gap: var(--s-4);
+        align-items: flex-start;
+        background: var(--accent-wash);
+        border: 1px solid #cfe2e0;
+        border-radius: var(--radius);
+        padding: var(--s-5);
+      }
+
+      .steps li::before {
+        counter-increment: step;
+        content: counter(step);
+        flex: 0 0 auto;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        font-family: var(--font-mono);
+        font-size: 14px;
+        font-weight: 600;
+        display: grid;
+        place-items: center;
+      }
+
+      .steps strong {
+        display: block;
+        font-size: 16px;
+        margin-bottom: var(--s-1);
+        color: var(--ink);
+      }
+
+      .steps span {
+        color: var(--ink-soft);
+        font-size: 15px;
+      }
+
+      /* ---------- Closing CTA band ---------- */
+      .cta-band {
+        background: var(--ink);
+        color: var(--paper);
+        border-radius: var(--radius);
+        padding: var(--s-7) var(--s-6);
+        text-align: center;
+      }
+
+      .cta-band h2 {
+        font-family: var(--font-display);
+        font-size: 26px;
+        margin: 0 0 var(--s-3);
+        color: #fff;
+      }
+
+      .cta-band p {
+        margin: 0 0 var(--s-5);
+        color: #c9cfcf;
+        font-size: 16px;
+      }
+
+      .cta-band a {
+        display: inline-block;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 600;
+        padding: var(--s-3) var(--s-6);
+        border-radius: var(--radius);
+        text-decoration: none;
+      }
+
+      .cta-band a:hover {
+        background: var(--accent-deep);
+      }
+
+      /* ============================================================
+         PRINT — clean single-document PDF export
+         ============================================================ */
+      @media print {
+        :root {
+          --paper: #ffffff;
+        }
+        body {
+          font-size: 11pt;
+        }
+        .page {
+          max-width: none;
+          padding: 0;
+        }
+        .apb-prompt,
+        .apb-claim {
+          display: none;
+        }
+        section {
+          margin-bottom: 22pt;
+          break-inside: avoid;
+        }
+        .features li,
+        .steps li,
+        .cta-band {
+          box-shadow: none;
+          break-inside: avoid;
+        }
+        @page {
+          margin: 18mm 16mm;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .page {
+          padding: var(--s-7) var(--s-5) var(--s-7);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <p class="apb-meta">
+        Built with <strong>agentpub</strong> in ~30 seconds — and you can review it
+        right now.
+      </p>
+      <p class="apb-prompt">
+        👈 Try it: click any element on this page and leave a comment. Your agent
+        will see it and revise this live.
+      </p>
+
+      <!-- ===== Hero: product name + one-line promise ===== -->
+      <header class="hero">
+        <p class="eyebrow">Now in early access</p>
+        <h1>Meridian</h1>
+        <p class="promise">
+          Turn scattered customer feedback into a ranked roadmap — automatically,
+          every morning, before your first standup.
+        </p>
+        <a class="hero-cta" href="#start">Start your free trial →</a>
+      </header>
+
+      <!-- ===== Feature / benefit blocks ===== -->
+      <section>
+        <div class="section-head">
+          <span class="section-num">01</span>
+          <h2 class="section-title">Why teams switch to Meridian</h2>
+        </div>
+        <ul class="features">
+          <li>
+            <h3>Every signal in one place</h3>
+            <p>
+              Support tickets, sales calls, NPS, and app reviews flow into a single
+              feed — no more feedback buried across six tools.
+            </p>
+          </li>
+          <li>
+            <h3>Themes that surface themselves</h3>
+            <p>
+              Meridian clusters raw comments into ranked themes by revenue impact, so
+              you ship what actually moves retention.
+            </p>
+          </li>
+          <li>
+            <h3>A roadmap you can defend</h3>
+            <p>
+              Every roadmap item links straight to the verbatim quotes behind it.
+              Walk into any review with the receipts.
+            </p>
+          </li>
+        </ul>
+      </section>
+
+      <!-- ===== How it works (3-step) ===== -->
+      <section>
+        <div class="section-head">
+          <span class="section-num">02</span>
+          <h2 class="section-title">How it works</h2>
+        </div>
+        <ol class="steps">
+          <li>
+            <div>
+              <strong>Connect your sources</strong>
+              <span
+                >Link Zendesk, Gong, Intercom, and the App Store in two clicks. No
+                CSV exports, no engineering tickets.</span
+              >
+            </div>
+          </li>
+          <li>
+            <div>
+              <strong>Let Meridian cluster</strong>
+              <span
+                >Overnight, it groups thousands of comments into themes and scores
+                each by reach, frequency, and account value.</span
+              >
+            </div>
+          </li>
+          <li>
+            <div>
+              <strong>Ship with confidence</strong>
+              <span
+                >Open your ranked roadmap each morning, drag what matters into the
+                sprint, and share a live link with leadership.</span
+              >
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ===== Closing CTA ===== -->
+      <section id="start">
+        <div class="cta-band">
+          <h2>See your roadmap build itself</h2>
+          <p>14-day trial. No credit card. Your first themes ready by tomorrow.</p>
+          <a href="#start">Start free →</a>
+        </div>
+      </section>
+
+      <footer class="apb-claim">
+        This preview disappears in 24 hours.
+        <a href="{{CLAIM_URL}}">Keep it &amp; make it yours →</a>
+      </footer>
+    </main>
+  </body>
+</html>
