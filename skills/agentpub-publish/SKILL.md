@@ -57,6 +57,8 @@ curl -sX POST '<upload.finalizeUrl>' \
 
 Live at `https://{slug}.agentpub.io/`.
 
+**Name the site for humans.** Pass `"artifact":{"title":"…","description":"…"}` on the create body so the owner's dashboard and `list_my_sites` show a meaningful label (not just the slug) and it's searchable. Omitted? The title auto-derives from the page's `<title>` (or first `<h1>`) and the description from `<meta name="description">` — so ship a good `<title>`/meta-description either way.
+
 ## Confirm ownership after finalize (surface it loudly)
 
 Every publish response carries the ownership state — **check it and report it to the user** so an accidental anonymous site is caught immediately:
