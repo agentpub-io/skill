@@ -71,7 +71,7 @@ If you see `authenticated: false` / `anonymous: true` / a non-null `expiresAt` w
 
 ## First use — acquire and persist a key once (no browser)
 
-**Preferred for headless agents: device pairing.** Run `./agentpub.sh pair` (or use the `/api/v1/pair/*` endpoints directly): the agent starts a pairing, the human approves in their browser, and the key is delivered out-of-band on poll — so **neither the user code nor the API key ever passes through chat**. The `deviceSecret` stays with the agent and `agentpub.sh pair` persists the key to `~/.config/agentpub/credentials` (0600). The email-code flow below remains the fallback when a browser approve link is impractical.
+**Preferred for headless agents: device pairing.** Run `./agentpub.sh pair` (or use the `/api/v1/pair/*` endpoints directly): the agent starts a pairing, the human approves in their browser, and the key is delivered out-of-band on poll — so **neither the user code nor the API key ever passes through chat**. The `deviceSecret` stays with the agent and `agentpub.sh pair` persists the key to `~/.config/agentpub/credentials` (0600). For headless integration, run `agentpub.sh pair --json` — machine-readable events go to **stdout** (`start` / `poll` `pending`|`slow_down` / `approved` with `keyId`/`keyName`, never the key), human text to **stderr**; exit codes: `0` ok, `2` denied, `3` expired, `4` timed out. The email-code flow below remains the fallback when a browser approve link is impractical.
 
 When no key resolves and the user wants to keep their work:
 

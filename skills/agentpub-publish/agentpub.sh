@@ -17,15 +17,32 @@
 #   agentpub.sh whoami                   show how a key resolves (no secrets printed)
 #
 # Requires: bash, curl, jq. Copy this file out of the skill and run it directly.
-# The API key is written only to the 0600 credential file or read from env —
-# never echoed, logged, or committed.
+#
+# KEY-SECRECY GUARANTEE (verifiable, no test harness): a raw API key is only ever
+# (a) written to the 0600 credential file via save_key, (b) read from env, or
+# (c) sent as a Bearer Authorization header to the agentpub API. It is NEVER
+# printed to stdout/stderr, logged, or committed. On `pair` success only keyName,
+# keyId, and the credential-file path are emitted. Verify by grepping this file:
+# a raw-key variable ($apikey/$apiKey) reaches only save_key or an "authorization:
+# Bearer" header — never a printf/echo/jq output.
+#
+# I/O CONTRACT (for headless agents): machine-readable JSON (--json) goes to
+# STDOUT, one event object per line; human-readable text goes to STDERR. Parse
+# stdout, show stderr. Frozen `pair --json` events:
+#   {"event":"start","verificationUrlComplete","userCode","pollIntervalSeconds","expiresInSeconds"}
+#   {"event":"poll","status":"pending"}
+#   {"event":"poll","status":"slow_down","retryAfterSeconds":N}
+#   {"event":"approved","keyId","keyName","credentials"}   # never an apiKey field
+#
+# EXIT CODES: 0 ok · 1 generic error · 2 denied · 3 expired · 4 timed out.
 
 set -euo pipefail
 
 BASE="${AGENTPUB_BASE:-https://agentpub.io}"
 CRED_FILE="${AGENTPUB_CREDENTIALS:-$HOME/.config/agentpub/credentials}"
 
-die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+# die <message> [exit-code]  — human text to stderr; default exit 1.
+die() { printf 'error: %s\n' "$1" >&2; exit "${2:-1}"; }
 need() { command -v "$1" >/dev/null 2>&1 || die "missing required command: $1"; }
 
 # Resolve an API key: env var first, then the 0600 credential file. Echoes the
@@ -157,25 +174,36 @@ cmd_pair() {
   while :; do
     sleep "$interval"
     now="$(date +%s)"
-    [ "$now" -lt "$deadline" ] || die "pairing timed out"
+    [ "$now" -lt "$deadline" ] || die "pairing timed out" 4
 
-    # ONE request per iteration capturing body + status (mint-on-poll is
-    # single-use: a separate status-probe request would consume the approval and
-    # discard the one-time key). Status code is appended on a final line.
-    local resp http body
-    resp="$(curl -sS -w $'\n%{http_code}' -X POST "$BASE/api/v1/pair/poll" \
-      -H 'content-type: application/json' -d "$poll_body")" || die "pair/poll request failed"
+    # ONE request per iteration capturing headers + body + status (mint-on-poll
+    # is single-use: a separate status-probe request would consume the approval
+    # and discard the one-time key). Status code is appended on a final line;
+    # headers are dumped so we can honor Retry-After on a 429.
+    local resp http body hdrs retry
+    hdrs="$(mktemp)"
+    resp="$(curl -sS -D "$hdrs" -w $'\n%{http_code}' -X POST "$BASE/api/v1/pair/poll" \
+      -H 'content-type: application/json' -d "$poll_body")" || { rm -f "$hdrs"; die "pair/poll request failed"; }
     http="${resp##*$'\n'}"
     body="${resp%$'\n'*}"
     if [ "$http" = "429" ]; then
-      # slow_down — back off an extra interval and continue.
-      sleep "$interval"
+      # slow_down — honor Retry-After when present, else back off one interval.
+      retry="$(awk 'tolower($1)=="retry-after:"{gsub(/\r/,"",$2);print $2}' "$hdrs")"
+      rm -f "$hdrs"
+      [ -n "$retry" ] || retry="$interval"
+      if [ "$json" -eq 1 ]; then
+        jq -nc --argjson r "$retry" '{event:"poll",status:"slow_down",retryAfterSeconds:$r}'
+      else
+        printf '\n(slow_down — waiting %ss)\n' "$retry" >&2
+      fi
+      sleep "$retry"
       continue
     fi
+    rm -f "$hdrs"
     [ "$http" = "200" ] || die "pair/poll failed (HTTP $http)"
 
     status="$(jq -r '.status' <<<"$body")"
-    if [ "$json" -eq 1 ]; then
+    if [ "$json" -eq 1 ] && [ "$status" != "approved" ]; then
       jq -nc --arg s "$status" '{event:"poll",status:$s}'
     fi
     case "$status" in
@@ -196,9 +224,9 @@ cmd_pair() {
           printf '  keyId:   %s\n' "$key_id" >&2
         fi
         break ;;
-      denied)   die "pairing denied" ;;
-      expired)  die "pairing expired" ;;
-      consumed) die "pairing already used" ;;
+      denied)   die "pairing denied" 2 ;;
+      expired)  die "pairing expired" 3 ;;
+      consumed) die "pairing already used" 1 ;;
       *)        die "unexpected pairing status: $status" ;;
     esac
   done
@@ -293,8 +321,17 @@ cmd_publish() {
 cmd_sites() {
   need curl; need jq
   local key=""; key="$(resolve_key)" || die "no key resolved — run 'agentpub.sh login'"
-  curl -fsS "$BASE/api/v1/sites" -H "authorization: Bearer $key" \
-    | jq -r '.sites[]? | "\(.slug)\t\(.siteUrl)"'
+  # Listings are eventually consistent: a just-published site may not appear on
+  # the first read. Retry briefly while empty (bounded — a genuinely empty
+  # account costs at most ~3s, once).
+  local out=""
+  for attempt in 1 2 3; do
+    out="$(curl -fsS "$BASE/api/v1/sites" -H "authorization: Bearer $key" \
+      | jq -r '.sites[]? | "\(.slug)\t\(.siteUrl)"')"
+    [ -n "$out" ] && break
+    [ "$attempt" -lt 3 ] && sleep 1
+  done
+  [ -n "$out" ] && printf '%s\n' "$out" || printf 'no sites yet\n' >&2
 }
 
 cmd_whoami() {
@@ -316,7 +353,7 @@ main() {
     sites)   cmd_sites "$@" ;;
     whoami)  cmd_whoami "$@" ;;
     ""|-h|--help)
-      sed -n '2,21p' "$0" | sed 's/^# \{0,1\}//' ;;
+      sed -n '2,37p' "$0" | sed 's/^# \{0,1\}//' ;;
     *) die "unknown command: $cmd (try --help)" ;;
   esac
 }
