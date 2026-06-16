@@ -138,14 +138,15 @@ cmd_publish() {
   dir="${dir%/}"
 
   local key=""; key="$(resolve_key)" || true
+  local require_auth="${AGENTPUB_REQUIRE_AUTH:-0}"
 
-  # Guardrail: never silently create a throwaway anonymous site.
-  if [ "$anonymous" -eq 0 ] && [ -z "$key" ]; then
-    if [ "${AGENTPUB_REQUIRE_AUTH:-0}" = "1" ]; then
-      die "AGENTPUB_REQUIRE_AUTH=1 and no key resolved — run 'agentpub.sh login' first (refusing anonymous)"
-    fi
-    printf 'warning: no key resolved — falling back to an anonymous 24h site. Run "agentpub.sh login" to publish owned, or pass --anonymous to silence this.\n' >&2
-    anonymous=1
+  # Safe path is automatic: anonymous is an EXPLICIT choice, never a silent
+  # fallback. Bare `publish <dir>` publishes owned, or hard-stops if no key.
+  if [ "$anonymous" -eq 1 ]; then
+    [ "$require_auth" = "1" ] && \
+      die "AGENTPUB_REQUIRE_AUTH=1 forbids anonymous publishing (even with --anonymous)"
+  elif [ -z "$key" ]; then
+    die "no key resolved — run 'agentpub.sh login' to publish an owned site, or pass --anonymous for a throwaway 24h site"
   fi
 
   local manifest auth_args=()

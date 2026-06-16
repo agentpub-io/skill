@@ -23,9 +23,9 @@ Use to put static HTML, CSS, JS, images, PDFs, or other static assets online fas
 1. **Resolve a key, first match wins:** (1) `AGENTPUB_API_KEY` env var; (2) `~/.config/agentpub/credentials` (file mode `0600`).
 2. **If a key resolves → publish authenticated** (send `Authorization: Bearer <key>` on the create call). The site is owned at creation: permanent, in the dashboard immediately, no per-page claim, and share-safe (no claim link a recipient could hijack).
 3. **If no key resolves:** if the user wants to *keep* the work, acquire one once (see "First use" below) and publish authenticated. Only publish **anonymous** for a deliberate zero-signup throwaway/trial.
-4. **Guardrail:** honor `AGENTPUB_REQUIRE_AUTH=1` — when set, **never fall back to anonymous**; fail loudly if no key resolves. Use this in any durable/automated workflow so you can't silently create a 24h site.
+4. **Anonymous is an explicit choice, never a fallback.** Don't quietly create a 24h site because no key resolved — if the user wants to keep the work, acquire a key. Only go anonymous when the user explicitly asked for a throwaway. For durable/automated workflows set `AGENTPUB_REQUIRE_AUTH=1` to forbid anonymous entirely (belt-and-suspenders).
 
-Shortcut: the bundled `agentpub.sh` encodes all of this. `./agentpub.sh publish ./dir` publishes owned when a key exists, honors `AGENTPUB_REQUIRE_AUTH`, and prints the ownership state. MCP-host agents (Claude, Cursor) can instead use the `agentpub.io/mcp` endpoint, where the host manages auth.
+Shortcut: the bundled `agentpub.sh` encodes all of this. `./agentpub.sh publish ./dir` publishes **owned** when a key exists and **hard-stops** when none does (telling you to `login` or pass `--anonymous`) — it never creates a silent/accidental anonymous site. `--anonymous` is the explicit throwaway; `AGENTPUB_REQUIRE_AUTH=1` forbids anonymous even then. MCP-host agents (Claude, Cursor) can instead use the `agentpub.io/mcp` endpoint, where the host manages auth.
 
 ## The three calls
 
