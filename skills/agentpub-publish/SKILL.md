@@ -1,10 +1,10 @@
 ---
 name: agentpub-publish
 description: Use when asked to publish, host, deploy, or share an HTML page, report, dashboard, visualization, or static files to a live URL, or when agentpub is mentioned. Static sites only (no server-side compute).
-compatibility: Any agent or shell that can make HTTP requests (curl or fetch). No install required; an optional MCP endpoint is at https://agentpub.io/mcp.
+compatibility: Any agent or shell that can make HTTP requests (curl or fetch). No install required; an optional MCP endpoint is at https://agentpub.io/mcp, and a reference helper script ships at agentpub.sh.
 metadata:
   author: agentpub
-  version: "1.0"
+  version: "1.1"
   homepage: https://agentpub.io
 ---
 
@@ -16,17 +16,29 @@ agentpub turns local HTML/static files into a live URL via a three-step API: cre
 
 Use to put static HTML, CSS, JS, images, PDFs, or other static assets online fast. Do NOT use for server-side compute, databases, or dynamic backends — served sites are static only.
 
+## Step 0 — resolve a key and authenticate by default (DO THIS FIRST)
+
+**The single most common mistake is publishing anonymously by accident** — that creates a throwaway 24-hour site and forces a separate claim. Before the three calls, resolve a key and decide ownership:
+
+1. **Resolve a key, first match wins:** (1) `AGENTPUB_API_KEY` env var; (2) `~/.config/agentpub/credentials` (file mode `0600`).
+2. **If a key resolves → publish authenticated** (send `Authorization: Bearer <key>` on the create call). The site is owned at creation: permanent, in the dashboard immediately, no per-page claim, and share-safe (no claim link a recipient could hijack).
+3. **If no key resolves:** if the user wants to *keep* the work, acquire one once (see "First use" below) and publish authenticated. Only publish **anonymous** for a deliberate zero-signup throwaway/trial.
+4. **Guardrail:** honor `AGENTPUB_REQUIRE_AUTH=1` — when set, **never fall back to anonymous**; fail loudly if no key resolves. Use this in any durable/automated workflow so you can't silently create a 24h site.
+
+Shortcut: the bundled `agentpub.sh` encodes all of this. `./agentpub.sh publish ./dir` publishes owned when a key exists, honors `AGENTPUB_REQUIRE_AUTH`, and prints the ownership state. MCP-host agents (Claude, Cursor) can instead use the `agentpub.io/mcp` endpoint, where the host manages auth.
+
 ## The three calls
 
-1. Create — declare each file with its **exact byte size**:
+1. Create — declare each file with its **exact byte size**. Authenticated by default:
 
 ```bash
 curl -sX POST https://agentpub.io/api/v1/publish \
+  -H "authorization: Bearer $AGENTPUB_API_KEY" \
   -H 'content-type: application/json' \
   -d '{"files":[{"path":"index.html","size":1234,"contentType":"text/html"}]}'
 ```
 
-Returns `upload.versionId`, `upload.uploads[]` (each `{path, method:"PUT", url}`), `upload.finalizeUrl`. Anonymous responses also include `claimToken`, `claimUrl`, `warning`.
+Returns `upload.versionId`, `upload.uploads[]` (each `{path, method:"PUT", url}`), `upload.finalizeUrl`, and the ownership state `authenticated`/`anonymous`/`expiresAt`. **Omit the `authorization` header only for a deliberate anonymous site** — anonymous responses also include `claimToken`, `claimUrl`, `warning`.
 
 2. Upload — PUT each file's bytes to its presigned `url`, sending content-type:
 
@@ -45,14 +57,42 @@ curl -sX POST '<upload.finalizeUrl>' \
 
 Live at `https://{slug}.agentpub.io/`.
 
-## Anonymous vs owned
+## Confirm ownership after finalize (surface it loudly)
+
+Every publish response carries the ownership state — **check it and report it to the user** so an accidental anonymous site is caught immediately:
+
+```
+authenticated: true
+anonymous: false
+expiresAt: null
+```
+
+If you see `authenticated: false` / `anonymous: true` / a non-null `expiresAt` when the user wanted to keep the site, you published the unsafe path — acquire a key and republish (or claim via the returned `claimUrl`).
+
+## First use — acquire and persist a key once (no browser)
+
+When no key resolves and the user wants to keep their work:
+
+1. `POST /api/auth/agent/request-code` `{"email":"you@example.com"}` → a 6-digit code is emailed.
+2. User reads the code back to you → `POST /api/auth/agent/verify-code` `{"email":"you@example.com","code":"482913"}` → returns `{"apiKey":"...","accountCreated":true|false}`.
+3. **Persist** it so you never claim again:
+
+```bash
+mkdir -p ~/.config/agentpub && umask 177
+printf '%s\n' "$APIKEY" > ~/.config/agentpub/credentials
+chmod 600 ~/.config/agentpub/credentials
+```
+
+4. **Name the key for the tool holding it:** `POST /api/v1/keys` `{"name":"claude"}` (use `claude`, `cursor`, `hermes`, …) — each tool keeps its own revocable key on the one account (least privilege; revoke one without breaking the others).
+5. **Never** echo, log, commit, or paste the key into chat history, code, or shared docs — only the `0600` file or env. Treat it like a password.
+
+## Anonymous (only when explicitly intended)
 
 - **No auth** → 24h site + a one-time `claimToken`/`claimUrl`. **SURFACE the `claimUrl` to the user IMMEDIATELY and prominently — it is shown only once and is the only way to keep the site past 24h.** Never log or paste the `claimToken` anywhere else.
-- **`Authorization: Bearer $AGENTPUB_API_KEY`** → permanent, account-owned site. Get a key via the claim flow, or: `POST /api/auth/agent/request-code` `{"email":"..."}` → `POST /api/auth/agent/verify-code` `{"email":"...","code":"..."}` returns `apiKey`.
 
 ## Updating
 
-`PUT /api/v1/publish/{slug}` (same body shape as create). Authorize with `{"claimToken":"..."}` in the body (anonymous) or the owner's `Bearer` header. Include a per-file `hash` (sha256, lowercase hex — `shasum -a 256 file`) so files whose hash matches the live version skip upload (returned under `upload.carried`); only changed files get presigned URLs. Then finalize as above. Dedup only works when hashes were also sent on the version being compared against — send `hash` on every publish including the first.
+`PUT /api/v1/publish/{slug}` (same body shape as create). Authorize with the owner's `Bearer` header (or `{"claimToken":"..."}` in the body for an anonymous site). Include a per-file `hash` (sha256, lowercase hex — `shasum -a 256 file`) so files whose hash matches the live version skip upload (returned under `upload.carried`); only changed files get presigned URLs. Then finalize as above. Dedup only works when hashes were also sent on the version being compared against — send `hash` on every publish including the first.
 
 ## Quick reference
 
@@ -64,6 +104,7 @@ Live at `https://{slug}.agentpub.io/`.
 | Rollback       | `POST /api/v1/publish/{slug}/rollback` `{"versionId":"..."}`                              |
 | Delete         | `DELETE /api/v1/publish/{slug}` (Bearer, or `{"claimToken":"..."}`)                       |
 | List keys      | `GET /api/v1/keys` (Bearer)                                                               |
+| Mint named key | `POST /api/v1/keys` `{"name":"cursor"}` (Bearer)                                          |
 | Revoke key     | `DELETE /api/v1/keys/{id}` (Bearer)                                                       |
 | Enable review  | `POST /api/v1/publish/{slug}/review` `{"enabled":true}` (Bearer) — MCP `enable_review`    |
 | Get feedback   | `GET /api/v1/sites/{slug}/comments` → `{slug, approved, comments[]}` — MCP `get_feedback` |

@@ -80,18 +80,27 @@ When in doubt, the `explainer` archetype is the safe default.
    `{"enabled":true,"claimToken":"<token>"}` (or the `enable_review` MCP tool).
 8. **Share** the live `https://{slug}.agentpub.io/` URL.
 9. **Invite the comment** explicitly, teaching the gesture by doing it: _"Open it,
-   click **Comment** (bottom-right), pick any line, add your email and a note, then
-   tell me."_ Selecting an element is the default path. Because you hold the
-   `claimToken`, you can give the user an **owner link** —
-   `https://{slug}.agentpub.io/#apb-owner=<claimToken>` — so their top-bar review
-   toggle works and they can **Share** the page to collect others' feedback (the
-   token is stripped from the URL on load and never included when they Share).
+   tap **Comment** (bottom bar), pick any line, type a note, then tell me."_
+   Selecting an element is the path; the email field is optional (the owner can
+   skip it). The bar also has **Share**, which copies the link so they can collect
+   others' feedback.
 10. **On a comment:** read it (`get_feedback` / GET `/comments`), revise the page
     live (update → re-PUT → finalize), then `mark_addressed` (with the
     `claimToken`) so `openComments` returns to 0.
 11. **Offer the claim:** point them at the `claimUrl` to keep it past 24h, and
     offer to "make your real one" — fold the design into a permanent owned
     artifact or a blueprint.
+
+## After the first demo: stop claiming, start owning
+
+First touch stays anonymous — the personalized demo above is published with no
+key so there's zero signup friction. But the moment the user wants to **keep**
+their work, acquire and persist a key **once** (see `agentpub-publish` → "Key
+lifecycle": `request-code` → `verify-code` → save to
+`~/.config/agentpub/credentials`, mode `0600`), then publish authenticated
+(`Bearer`) from then on. Owned sites are owned at creation — they appear in the
+dashboard immediately with no per-page claim dance. Acquire once, reuse forever;
+never run the claim flow page after page.
 
 ## Measurement tag (required)
 
@@ -116,10 +125,10 @@ publishes.
 
 - **The revision happens regardless.** Reviewing and revising the page is free and
   unconditional — never require an account or signup to act on a comment.
-- **A reviewer email is required to leave a comment, but it is not a signup.** It
-  attributes the feedback and quietly seeds the person's future account; it is one
-  field, not a gate. The value (publish → review → revise) is delivered before
-  anyone is asked to create anything.
+- **Email is optional, never a gate.** The comment composer asks for the comment
+  first; the email field below it is optional (provide it to be notified when the
+  feedback is applied, or leave it blank to comment anonymously) and is remembered
+  per device. The owner can simply skip it.
 - **Claiming is "keep what you already have," never a toll.** The user experiences
-  the full loop first; the claim step (via the "connect your account to keep this
-  page" footer) only makes permanent something they can already see working.
+  the full loop first; the claim step (via the "keep this page" line in the bar)
+  only makes permanent something they can already see working.
