@@ -10,6 +10,8 @@
 #
 # Commands:
 #   agentpub.sh login [email]            acquire + persist a key (0600), name it
+#   agentpub.sh pair [name] [--json]     pair a device: human approves in browser,
+#                                        key delivered out-of-band (no code/key in chat)
 #   agentpub.sh publish <dir> [--anonymous]   publish a directory (owned by default)
 #   agentpub.sh sites                    list your sites (requires a key)
 #   agentpub.sh whoami                   show how a key resolves (no secrets printed)
@@ -103,6 +105,103 @@ cmd_login() {
 
   printf 'Signed in (account %s). Key saved to %s (mode 600).\n' \
     "$([ "$created" = "true" ] && echo created || echo existing)" "$CRED_FILE" >&2
+}
+
+# Pair a device: the human approves in their browser and the minted key is
+# delivered out-of-band on poll — neither the userCode nor the key passes
+# through chat. The deviceSecret is held only here. --json emits the start
+# fields and each poll status as JSON lines; default is pretty text on stderr.
+cmd_pair() {
+  need curl; need jq
+  local name="" json=0
+  for arg in "$@"; do
+    case "$arg" in
+      --json) json=1 ;;
+      -*)     die "unknown flag: $arg" ;;
+      *)      name="$arg" ;;
+    esac
+  done
+  [ -n "$name" ] || name="${AGENTPUB_KEY_NAME:-}"
+
+  local start_body='{}'
+  [ -n "$name" ] && start_body="$(jq -nc --arg n "$name" '{name:$n}')"
+
+  local start
+  start="$(curl -fsS -X POST "$BASE/api/v1/pair/start" \
+    -H 'content-type: application/json' -d "$start_body")" \
+    || die "pair/start failed"
+
+  local pairing_id device_secret user_code verify_url interval expires
+  pairing_id="$(jq -r '.pairingId' <<<"$start")"
+  device_secret="$(jq -r '.deviceSecret' <<<"$start")"
+  user_code="$(jq -r '.userCode' <<<"$start")"
+  verify_url="$(jq -r '.verificationUrlComplete' <<<"$start")"
+  interval="$(jq -r '.pollIntervalSeconds' <<<"$start")"
+  expires="$(jq -r '.expiresInSeconds' <<<"$start")"
+  [ -n "$pairing_id" ] && [ "$pairing_id" != "null" ] || die "no pairingId in pair/start response"
+
+  if [ "$json" -eq 1 ]; then
+    jq -nc --arg u "$verify_url" --arg c "$user_code" --argjson i "$interval" --argjson e "$expires" \
+      '{event:"start",verificationUrlComplete:$u,userCode:$c,pollIntervalSeconds:$i,expiresInSeconds:$e}'
+  else
+    printf 'Open this URL to approve; waiting…\n' >&2
+    printf '  URL:  %s\n' "$verify_url" >&2
+    printf '  code: %s\n' "$user_code" >&2
+  fi
+
+  local poll_body deadline now status apikey key_id key_name
+  poll_body="$(jq -nc --arg p "$pairing_id" --arg s "$device_secret" '{pairingId:$p,deviceSecret:$s}')"
+  now="$(date +%s)"
+  deadline=$((now + expires))
+
+  while :; do
+    sleep "$interval"
+    now="$(date +%s)"
+    [ "$now" -lt "$deadline" ] || die "pairing timed out"
+
+    # ONE request per iteration capturing body + status (mint-on-poll is
+    # single-use: a separate status-probe request would consume the approval and
+    # discard the one-time key). Status code is appended on a final line.
+    local resp http body
+    resp="$(curl -sS -w $'\n%{http_code}' -X POST "$BASE/api/v1/pair/poll" \
+      -H 'content-type: application/json' -d "$poll_body")" || die "pair/poll request failed"
+    http="${resp##*$'\n'}"
+    body="${resp%$'\n'*}"
+    if [ "$http" = "429" ]; then
+      # slow_down — back off an extra interval and continue.
+      sleep "$interval"
+      continue
+    fi
+    [ "$http" = "200" ] || die "pair/poll failed (HTTP $http)"
+
+    status="$(jq -r '.status' <<<"$body")"
+    if [ "$json" -eq 1 ]; then
+      jq -nc --arg s "$status" '{event:"poll",status:$s}'
+    fi
+    case "$status" in
+      pending)  [ "$json" -eq 1 ] || printf '.' >&2 ;;
+      approved)
+        apikey="$(jq -r '.apiKey // empty' <<<"$body")"
+        key_id="$(jq -r '.keyId // empty' <<<"$body")"
+        key_name="$(jq -r '.keyName // empty' <<<"$body")"
+        [ -n "$apikey" ] || die "approved but no apiKey in poll response"
+        # Persist BEFORE printing success so a crash never loses the one-time key.
+        save_key "$apikey"
+        if [ "$json" -eq 1 ]; then
+          jq -nc --arg i "$key_id" --arg n "$key_name" --arg f "$CRED_FILE" \
+            '{event:"approved",keyId:$i,keyName:$n,credentials:$f}'
+        else
+          printf '\nPaired. Key saved to %s (mode 600).\n' "$CRED_FILE" >&2
+          printf '  keyName: %s\n' "${key_name:-"(unnamed)"}" >&2
+          printf '  keyId:   %s\n' "$key_id" >&2
+        fi
+        break ;;
+      denied)   die "pairing denied" ;;
+      expired)  die "pairing expired" ;;
+      consumed) die "pairing already used" ;;
+      *)        die "unexpected pairing status: $status" ;;
+    esac
+  done
 }
 
 # Build the files[] manifest JSON for a directory: path, size, contentType, hash.
@@ -212,11 +311,12 @@ main() {
   local cmd="${1:-}"; shift || true
   case "$cmd" in
     login)   cmd_login "$@" ;;
+    pair)    cmd_pair "$@" ;;
     publish) cmd_publish "$@" ;;
     sites)   cmd_sites "$@" ;;
     whoami)  cmd_whoami "$@" ;;
     ""|-h|--help)
-      sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//' ;;
+      sed -n '2,21p' "$0" | sed 's/^# \{0,1\}//' ;;
     *) die "unknown command: $cmd (try --help)" ;;
   esac
 }
