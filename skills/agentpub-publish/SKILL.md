@@ -4,7 +4,7 @@ description: Use when asked to publish, host, deploy, or share an HTML page, rep
 compatibility: Any agent or shell that can make HTTP requests (curl or fetch). No install required; an optional MCP endpoint is at https://agentpub.io/mcp, and a reference helper script ships at agentpub.sh.
 metadata:
   author: agentpub
-  version: "1.1"
+  version: "1.2"
   homepage: https://agentpub.io
 ---
 
@@ -59,6 +59,21 @@ Live at `https://{slug}.agentpub.io/`.
 
 **Name the site for humans.** Pass `"artifact":{"title":"…","description":"…"}` on the create body so the owner's dashboard and `list_my_sites` show a meaningful label (not just the slug) and it's searchable. Omitted? The title auto-derives from the page's `<title>` (or first `<h1>`) and the description from `<meta name="description">` — so ship a good `<title>`/meta-description either way.
 
+## Name it so you can update it in place (stable addressing)
+
+Pass a **`name`** on the create body — an account-scoped handle YOU choose (e.g. `"name":"ads-daily"`):
+
+```bash
+curl -sX POST https://agentpub.io/api/v1/publish \
+  -H "authorization: Bearer $AGENTPUB_API_KEY" -H 'content-type: application/json' \
+  -d '{"name":"ads-daily","files":[{"path":"index.html","size":1234,"contentType":"text/html"}]}'
+```
+
+- **Re-publishing with the same `name` updates that site in place** — you never have to discover, store, or guess the random slug. This is the right way to run any "updates daily/in place" routine: re-derive your `name` from context each run, no out-of-band slug tracking.
+- Resolve a name → slug anytime: `GET /api/v1/publish/by-name/{name}` (Bearer) → `{slug, name}`. `list_my_sites` also shows each site's `name`.
+- `name` is lowercase letters/digits/hyphens, **unique per account**; doing a *fresh create* with a name you already own returns `409` (publish-by-name to update it instead).
+- `name` ≠ `title`: `name` is the stable machine handle you address by; `title` (in `artifact`) is the human display label. The **public URL stays a random `{slug}.agentpub.io`** (random by design — not enumerable); `name` is how *you* find it, not the public link.
+
 ## Confirm ownership after finalize (surface it loudly)
 
 Every publish response carries the ownership state — **check it and report it to the user** so an accidental anonymous site is caught immediately:
@@ -94,18 +109,36 @@ chmod 600 ~/.config/agentpub/credentials
 
 - **No auth** → 24h site + a one-time `claimToken`/`claimUrl`. **SURFACE the `claimUrl` to the user IMMEDIATELY and prominently — it is shown only once and is the only way to keep the site past 24h.** Never log or paste the `claimToken` anywhere else.
 
-## Updating
+## Updating — full replace vs patch
 
-`PUT /api/v1/publish/{slug}` (same body shape as create). Authorize with the owner's `Bearer` header (or `{"claimToken":"..."}` in the body for an anonymous site). Include a per-file `hash` (sha256, lowercase hex — `shasum -a 256 file`) so files whose hash matches the live version skip upload (returned under `upload.carried`); only changed files get presigned URLs. Then finalize as above. Dedup only works when hashes were also sent on the version being compared against — send `hash` on every publish including the first.
+Address an existing site by `slug` (or resolve it from your `name`). Two ways to update:
+
+- **Full replace** — `PUT /api/v1/publish/{slug}` (same body shape as create). Authorize with the owner `Bearer` (or `{"claimToken":"..."}` for anonymous). Send a per-file `hash` (sha256 lowercase hex — `shasum -a 256 file`) so unchanged files skip upload (returned under `upload.carried`); only changed files get presigned URLs. Then finalize. Send `hash` on every publish incl. the first, or dedup can't compare.
+- **Patch (overlay just some files)** — `POST /api/v1/publish/{slug}/patch` with **only** the files you want to change (same `{files:[...]}` shape; Bearer or `{"claimToken"}`). Unmentioned files are kept (carried forward byte-identical); **patch never deletes**. Then finalize. This is the cheap path for incremental updates — e.g. swapping one `data.json` without resending the rest of the site. MCP: `patch_site`.
+
+## Recurring reports / dashboards that update in place daily
+
+The robust pattern for a page a scheduled agent refreshes (daily report, live dashboard):
+
+1. **Publish once** with a `name` and a **static** `index.html` whose markup never changes — it `fetch('data.json')`s its numbers at load and renders them client-side.
+2. **Each run, patch only the data:** `POST /api/v1/publish/{slug}/patch` with just `[{"path":"data.json",...}]`, then finalize. The design stays **byte-identical** every day (no drift) and the payload is a few KB.
+3. **Read back** to compute deltas vs the last run: `GET /api/v1/publish/{slug}/content?path=data.json` (Bearer) → current file contents. MCP: `get_site_content`.
+
+Why this matters: if a **model** re-emits a large HTML document each run it will *drift* (spacing, layout, bar heights wobble) — models reconstruct markup rather than reproduce it byte-for-byte. Static design + data-only patch eliminates that. (Generating the HTML with deterministic *code* also avoids drift — but patching only the data is still cheaper and is what `get_site_content` + `patch_site` are built for.)
+
+Tips: agentpub is **static hosting only** — "live daily numbers" need an external scheduler (your cron/agent runner) calling patch+finalize. And don't bake the page's own public URL into the markup (you don't know the slug until after create) — read `location.href` client-side instead.
 
 ## Quick reference
 
 | Action         | Call                                                                                      |
 | -------------- | ----------------------------------------------------------------------------------------- |
 | Site status    | `GET /api/v1/sites/{slug}`                                                                |
-| List my sites  | `GET /api/v1/sites` (Bearer)                                                              |
-| Versions       | `GET /api/v1/publish/{slug}/versions` (Bearer or `?claimToken=`)                          |
-| Rollback       | `POST /api/v1/publish/{slug}/rollback` `{"versionId":"..."}`                              |
+| List my sites  | `GET /api/v1/sites` (Bearer) — includes each site's `name` + `versionNumber`              |
+| Resolve a name | `GET /api/v1/publish/by-name/{name}` (Bearer) → `{slug, name}`                            |
+| Patch (overlay)| `POST /api/v1/publish/{slug}/patch` — change some files, keep the rest — MCP `patch_site` |
+| Read content   | `GET /api/v1/publish/{slug}/content[?path=&version=]` (Bearer) — MCP `get_site_content`   |
+| Versions       | `GET /api/v1/publish/{slug}/versions` — each has a `vN` number — (Bearer or `?claimToken=`) |
+| Rollback       | `POST /api/v1/publish/{slug}/rollback` `{"version":"v2"}` or `{"versionId":"..."}`        |
 | Delete         | `DELETE /api/v1/publish/{slug}` (Bearer, or `{"claimToken":"..."}`)                       |
 | List keys      | `GET /api/v1/keys` (Bearer)                                                               |
 | Mint named key | `POST /api/v1/keys` `{"name":"cursor"}` (Bearer)                                          |
