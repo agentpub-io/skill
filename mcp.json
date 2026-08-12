@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "agentpub": {
+      "type": "http",
+      "url": "https://agentpub.io/mcp"
+    }
+  }
+}
