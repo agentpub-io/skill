@@ -1,0 +1,15 @@
+{
+  "name": "agentpub",
+  "displayName": "agentpub",
+  "description": "Publish HTML pages, reports, dashboards, and static files to live reviewable URLs at {slug}.agentpub.io. Agents publish in seconds; reviewers comment on the live page; revise and re-publish in place. Use when asked to publish, host, deploy, share, or review a page on the web.",
+  "version": "0.1.0",
+  "author": { "name": "agentpub" },
+  "homepage": "https://agentpub.io",
+  "repository": "https://github.com/agentpub-io/skill",
+  "license": "MIT",
+  "keywords": ["agentpub", "publish", "static-hosting", "deploy", "share", "review", "comments", "mcp"],
+  "logo": "assets/agentpub.svg",
+  "category": "integrations",
+  "tags": ["agentpub", "publish", "mcp", "review"],
+  "mcpServers": "./mcp.json"
+}
