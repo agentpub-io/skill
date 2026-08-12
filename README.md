@@ -43,10 +43,9 @@ MIT — see [LICENSE](./LICENSE).
 
 ## Cursor Plugin / Marketplace
 
-This repo is also the [Cursor](https://cursor.com) plugin source for agentpub (skills + hosted MCP).
+This repo is the [Cursor](https://cursor.com) plugin source for agentpub: skills plus the hosted MCP that drives the full publish → review → revise → approve loop.
 
-- **MCP endpoint:** `https://agentpub.io/mcp` (configured in `mcp.json`)
+- **What it enables:** agents publish a live page, reviewers comment right on that page, the agent revises in place (versioned), and you approve when it is done — not just a one-shot host URL.
+- **MCP endpoint:** `https://agentpub.io/mcp` (see `mcp.json`)
 - **Local test:** symlink or copy this repo to `~/.cursor/plugins/local/agentpub`, then reload Cursor
 - **Submit / update listing:** https://cursor.com/marketplace/publish with this repository URL
-
-Modeled after [here.now](https://cursor.com/marketplace/here-now)’s marketplace plugin packaging.
