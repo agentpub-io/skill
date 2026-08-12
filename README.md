@@ -40,3 +40,13 @@ npx skills add agentpub-io/skill
 ## License
 
 MIT — see [LICENSE](./LICENSE).
+
+## Cursor Plugin / Marketplace
+
+This repo is also the [Cursor](https://cursor.com) plugin source for agentpub (skills + hosted MCP).
+
+- **MCP endpoint:** `https://agentpub.io/mcp` (configured in `mcp.json`)
+- **Local test:** symlink or copy this repo to `~/.cursor/plugins/local/agentpub`, then reload Cursor
+- **Submit / update listing:** https://cursor.com/marketplace/publish with this repository URL
+
+Modeled after [here.now](https://cursor.com/marketplace/here-now)’s marketplace plugin packaging.
