@@ -1,11 +1,13 @@
 {
   "name": "agentpub",
   "displayName": "agentpub",
-  "description": "Turn agent work into owned, reviewable web pages. Publish a live URL, collect comments on the page, revise in place until approved \u2014 with versioning, page protection, and leads. Use for client deliverables and any publish \u2192 review \u2192 revise \u2192 approve loop.",
-  "version": "0.1.1",
+  "description": "Turn agent work into owned, reviewable web pages. Publish a live URL, collect comments on the page, revise in place until approved — with versioning, page protection, and leads. Use for client deliverables and any publish → review → revise → approve loop.",
+  "version": "0.2.0",
   "author": {
-    "name": "agentpub"
+    "name": "agentpub",
+    "email": "hello@agentpub.io"
   },
+  "publisher": "agentpub",
   "homepage": "https://agentpub.io",
   "repository": "https://github.com/agentpub-io/skill",
   "license": "MIT",

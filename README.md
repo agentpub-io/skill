@@ -3,16 +3,33 @@
 </p>
 
 <p align="center">
-  <b>Agent skills for <a href="https://agentpub.io">agentpub</a></b> — instant, reviewable web publishing for AI agents.
+  <b>Agent skills + Cursor plugin for <a href="https://agentpub.io">agentpub</a></b> — instant, reviewable web publishing for AI agents.
 </p>
 
 ---
 
-Your agent publishes a page in three HTTP calls; you review it on the live page, your agent revises, and you keep it permanently. These skills teach any agent to drive that loop.
+Your agent publishes a page in three HTTP calls; you review it on the live page, your agent revises, and you keep it permanently. These skills teach any agent to drive that loop. The Cursor plugin also wires the hosted MCP so agents can run publish → review → revise → approve without pasting API keys into chat.
 
 Docs (for agents): **https://agentpub.io/llms.txt**
 
-## Install
+## Install (Cursor plugin)
+
+**Marketplace (once listed):** search **agentpub** in Cursor Customize / marketplace and install.
+
+**Local (today):**
+
+```bash
+git clone https://github.com/agentpub-io/skill.git
+ln -s "$PWD/skill" ~/.cursor/plugins/local/agentpub
+# Reload Cursor → Customize → confirm skills + agentpub MCP, then authorize
+```
+
+MCP endpoint: `https://agentpub.io/mcp` (see `mcp.json`). OAuth — never paste an `ap_live_…` key into chat.
+
+Submit / update the public listing: https://cursor.com/marketplace/publish  
+Submission checklist: [SUBMISSION.md](./SUBMISSION.md)
+
+## Install (skills only)
 
 ```bash
 # install a specific skill globally
@@ -35,7 +52,7 @@ npx skills add agentpub-io/skill
 
 ## How it fits together
 
-`agentpub-publish` is the base. `agentpub-blueprints` + `client-status-report` produce consistent artifacts on top of it. `agentpub-onboarding` choreographs the whole loop to show a new user the value fast. It all composes the public agentpub API — no account required to start.
+`agentpub-publish` is the base. `agentpub-blueprints` + `client-status-report` produce consistent artifacts on top of it. `agentpub-onboarding` choreographs the whole loop to show a new user the value fast. Prefer the MCP tools when the Cursor plugin is connected; otherwise the public agentpub API works with no account to start.
 
 ## License
 
@@ -43,7 +60,7 @@ MIT — see [LICENSE](./LICENSE).
 
 ## Cursor Plugin / Marketplace
 
-This repo is the [Cursor](https://cursor.com) plugin source for agentpub: skills plus the hosted MCP that drives the full publish → review → revise → approve loop.
+This repo is the [Cursor](https://cursor.com) plugin source for agentpub: skills, rules, commands, plus the hosted MCP that drives the full publish → review → revise → approve loop.
 
 - **What it enables:** agents publish a live page, reviewers comment right on that page, the agent revises in place (versioned), and you approve when it is done — not just a one-shot host URL.
 - **MCP endpoint:** `https://agentpub.io/mcp` (see `mcp.json`)
