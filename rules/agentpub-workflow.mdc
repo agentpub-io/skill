@@ -1,0 +1,35 @@
+---
+description: Prefer agentpub MCP for publish → review → revise → approve; never paste API keys in chat
+alwaysApply: false
+---
+
+# agentpub workflow
+
+agentpub is **not** a generic static host. The core loop is:
+
+1. Publish a live page
+2. Humans comment **on the page** (optionally element-anchored)
+3. Agent revises in place (versioned)
+4. Human approves a specific version
+
+## Prefer MCP when connected
+
+When the agentpub MCP server is available, prefer its tools (`publish_site`, `patch_site`, `get_review_packet`, `get_feedback`, `enable_review`, `mark_addressed`, `request_reapproval`, `needs_attention`, …) over raw curl. Fall back to `https://agentpub.io/llms.txt` / OpenAPI only when MCP is unavailable.
+
+## Ownership defaults
+
+- **Default to owned publishes** (authenticated). Anonymous 24h sites are for deliberate throwaways only.
+- Never paste an `ap_live_…` key into chat, commits, or shared docs. Use OAuth for MCP, or device pairing / env for CLI.
+- After every publish, confirm ownership state (`authenticated` / `anonymous` / `expiresAt`) and surface the live URL **and** the dashboard.
+
+## Review loop
+
+1. Enable review on the live page
+2. Share the URL (or a review invite)
+3. Pull open comments with anchors via `get_review_packet` / `get_feedback`
+4. You generate the revised HTML — no tool does that for you
+5. Publish the revision and mark comments addressed (`addressedCommentIds` + `requestReapproval` when using MCP publish/patch)
+
+## Static only
+
+Do not use agentpub for server-side compute or databases. Served sites are static.
